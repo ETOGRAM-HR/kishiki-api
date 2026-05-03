@@ -1,18 +1,21 @@
 from fastapi import FastAPI
 import json
+from datetime import datetime
 
 app = FastAPI()
 
-# 1つ目のJSON
 with open("lookup_data_1.json", encoding="utf-8") as f:
     data1 = json.load(f)
 
-# 2つ目のJSON
 with open("lookup_data_2.json", encoding="utf-8") as f:
     data2 = json.load(f)
 
-# 結合（ここが重要）
 data = data1 + data2
+
+def normalize_date(value: str) -> str:
+    value = value.replace("-", "/")
+    dt = datetime.strptime(value, "%Y/%m/%d")
+    return f"{dt.year}/{dt.month:02d}/{dt.day:02d}"
 
 @app.get("/")
 def root():
@@ -20,7 +23,24 @@ def root():
 
 @app.get("/meishiki")
 def get_meishiki(birth_date: str):
-    results = [d for d in data if d["生年月日"] == birth_date]
+    try:
+        target = normalize_date(birth_date)
+    except Exception:
+        return {"error": "invalid date format"}
+
+    results = []
+
+    for d in data:
+        if "生年月日" not in d:
+            continue
+
+        try:
+            row_date = normalize_date(d["生年月日"])
+        except Exception:
+            continue
+
+        if row_date == target:
+            results.append(d)
 
     if len(results) != 1:
         return {"error": "not found or duplicate"}
