@@ -10,6 +10,9 @@ def get_meishiki(birth_date: str):
         # 時刻削除
         raw = raw.split(" ")[0]
 
+        # ★ここ追加
+        raw = raw.replace("\\/", "/")
+
         # 区切り統一
         raw = raw.replace("-", "/")
 
