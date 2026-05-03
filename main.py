@@ -1,6 +1,5 @@
 from fastapi import FastAPI
 import json
-from datetime import datetime
 
 app = FastAPI()
 
@@ -12,10 +11,19 @@ with open("lookup_data_2.json", encoding="utf-8") as f:
 
 data = data1 + data2
 
-def normalize_date(value: str) -> str:
+def normalize_date(value):
+    value = str(value).strip()
     value = value.replace("-", "/")
-    dt = datetime.strptime(value, "%Y/%m/%d")
-    return f"{dt.year}/{dt.month:02d}/{dt.day:02d}"
+    parts = value.split("/")
+
+    if len(parts) != 3:
+        return value
+
+    year = parts[0]
+    month = parts[1].zfill(2)
+    day = parts[2].zfill(2)
+
+    return f"{year}/{month}/{day}"
 
 @app.get("/")
 def root():
@@ -23,26 +31,19 @@ def root():
 
 @app.get("/meishiki")
 def get_meishiki(birth_date: str):
-    try:
-        target = normalize_date(birth_date)
-    except Exception:
-        return {"error": "invalid date format"}
+    target = normalize_date(birth_date)
 
     results = []
-
     for d in data:
-        if "生年月日" not in d:
-            continue
-
-        try:
-            row_date = normalize_date(d["生年月日"])
-        except Exception:
-            continue
-
+        row_date = normalize_date(d.get("生年月日", ""))
         if row_date == target:
             results.append(d)
 
     if len(results) != 1:
-        return {"error": "not found or duplicate"}
+        return {
+            "error": "not found or duplicate",
+            "searched": target,
+            "count": len(results)
+        }
 
     return results[0]
